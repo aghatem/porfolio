@@ -12,7 +12,7 @@ st.write('In this page, I showcase my data analytics projects where I leverage t
 
 # Add a title and image to the page
 
-image = Image.open(r'C:\Users\User\Documents\Projects\Portfolio\data_analytics_image.png')
+image = Image.open(r'data_analytics_image.png')
 st.image(image,  width=1200)
 
 st.write('All datasets used in these projects are publicly available data and I try to keep in each project the data sources for reference,')
