@@ -23,7 +23,7 @@ st.write('Here are some of the data analytics projects I have worked on:')
 # Project 1
 st.write('### Project 1 - UK schools APP ')
 st.write('- Description: This project involved analyzing the data available for the 48k+ schools in United Kingdom. It allows parents to learn about the schools in their district and evaluate them based on multiple criteria using interactive maps and statistical charts about the schools performance, type, distance from home and other factors.')
-st.write('- Technologies Used: Python, Pandas, Matplotlib, Google Geo-map APIs.')
+st.write('- Technologies Used: Python, Pandas, geospatial data visualisation using folium, Matplotlib, Google Geo-map APIs.')
 st.write('- Results: The project aims to facilitate the school searchfor parents in United Kingdom and provide them the data needed to decide about the best school for their childs.')
 
 # Project 2
