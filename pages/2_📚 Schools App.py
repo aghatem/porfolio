@@ -361,14 +361,14 @@ def main ():
     schools = pd.read_csv(r'schools_db.csv', engine='python', encoding='ISO-8859-1')
 
     #load districts database
-    ds_db = pd.read_csv('\pages\po_to_district.csv', engine='python', encoding='ISO-8859-1')
+    ds_db = pd.read_csv('/pages/po_to_district.csv', engine='python', encoding='ISO-8859-1')
     #load districts rating
-    rating = pd.read_csv('\pages\districts_rating.csv', engine='python', encoding='ISO-8859-1')
+    rating = pd.read_csv('/pages/districts_rating.csv', engine='python', encoding='ISO-8859-1')
     rating_n = rating.fillna(0)
     rating_convert= rating_n.columns[1:]
     rating_n[rating_convert] = rating_n[rating_convert].astype(int)
     # load districts rank
-    rank = pd.read_csv('\pages\district_rank.csv', engine='python',  encoding='utf-8')
+    rank = pd.read_csv('/pages/district_rank.csv', engine='python',  encoding='utf-8')
 
     x = input()
     user_dist = x[1]
