@@ -57,7 +57,7 @@ Loosers_list = get_top_movers_list(losers_url)
 
 st.title('Stock Forecast App')
 
-st.write('This web app will provide you the information needed to analyze the stock market and will rely on prohet machine learning model to predict the estimated value for a after a certain period.')
+st.write('This web app will provide you the information needed to analyze the stock market and will rely on prohet machine learning model to predict the estimated value after a certain period.')
 st.write('It will rely on the historical stock value from yfinance API (in addition to other information like yearly dividend percentage, Price to Earning Ratio and details on the company). ')
 st.write('This web app will help you to analyze the daily top 100 tickers gainers and loosers as it performs HTML parsing from www.tradingview.com to provide you with the daily lists')
 with st.expander("Click to see todays top movers "):
