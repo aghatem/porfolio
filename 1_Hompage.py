@@ -28,7 +28,7 @@ st.write('- Results: The project aims to facilitate the school searchfor parents
 
 # Project 2
 st.write('### Project 2 - Stock analysis & prediction APP')
-st.write('- Description: This project focused on analysing the stock market historical data, and uses predictive modeling to forecast potential changes to the stock value.')
+st.write('- Description: This project focused on analysing the stock market historical data, calculates the key indicators needed for technical analysis and uses predictive modeling to forecast the enxt day closing value.')
 st.write('- Technologies Used: Python, yfinance API, HTML parsing, Scikit-learn, and Time Series Analysis.')
 st.write('- Results: The app is accessing a wide range of financial data, market trends, historical prices, and fundamental indicators. It empowers users to make informed investment decisions based on data rather than relying solely on speculation or emotions.') 
 st.write('The app enable users to monitor the performance of stocks and track the top gainers and loosers stocks.')
