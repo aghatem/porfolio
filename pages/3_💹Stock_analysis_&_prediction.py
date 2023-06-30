@@ -150,10 +150,10 @@ with st.expander("For a closer look to the stock data, click here !"):
 
 	
 with st.container():
-	st.subheader('Stock indiccators')
+	st.subheader('Stock indicators')
 	metrics = {'SMA (Simple Moving Average)','EMA (Exponential Moving Average)','BB (Bollinger Bands)', 'RSI (Relative Strength Index)','(MACD (Moving Average Convergence Divergence)','(VWAP (Volume Weighted Average Price )','(STOCH (Stochastic Oscillator )'}
 	selected_metric = st.multiselect('Please chose the indicators you want to analyze: ', options = metrics, default= ['SMA (Simple Moving Average)'] )
-
+	st.write('This section is currently being updated, Stay tuned!)
 
 
 
