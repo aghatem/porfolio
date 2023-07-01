@@ -56,7 +56,7 @@ Gainers_list = get_top_movers_list(gianers_url)
 Loosers_list = get_top_movers_list(losers_url)
 
 
-st.title('Stock Forecast App')
+st.title('Stock Investment Analysis & Forecast')
 
 st.write('This web app will provide you the information needed to analyze the stock market and will calculate the key technical indicators neneded to analyse the stock then will predict the next day closing value.')
 st.write('it will calculate the Simple Moving Average (SMA), Exponential Moving Average (EMA), Bollinger Bands (BB), Stochastic Oscillator (STOCH), Relative Strength Index (RSI), Moving Average Convergence Divergence (MACD) & Volume Weighted Average Price (VWAP)')
