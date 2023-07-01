@@ -61,7 +61,7 @@ st.title('Stock Forecast App')
 st.write('This web app will provide you the information needed to analyze the stock market and will calculate the key technical indicators neneded to analyse the stock then will predict the next day closing value.')
 st.write('it will calculate the Simple Moving Average (SMA), Exponential Moving Average (EMA), Bollinger Bands (BB), Stochastic Oscillator (STOCH), Relative Strength Index (RSI), Moving Average Convergence Divergence (MACD) & Volume Weighted Average Price (VWAP)')
 st.write('It will rely on the historical stock value from yfinance API (in addition to other information like yearly dividend percentage, Price to Earning Ratio and details on the company). ')
-st.write('This web app will help you to analyze the daily top 100 tickers gainers and loosers as it performs HTML parsing from www.tradingview.com to provide you with the daily lists')
+st.write('This web app will help you to analyze the daily top 100 tickers gainers and loosers as it performs HTML parsing from tradingview.com to provide you with the daily lists')
 with st.expander("Click to see todays top movers "):
 
 	list =('Gainers','Loosers')
@@ -226,6 +226,7 @@ with st.container():
 		# Calculate risk
 		
 		rets = df_3.dropna()
+		st.subheader("Risk vs Return analysis")
 		st.write('Risk is the uncertainty of the return on an investment. It is measured by the standard deviation of the returns. A higher standard deviation indicates that the returns are more volatile, and therefore riskier.')
 		st.write('Return is the income that an investment generates. It is measured by the mean of the returns. A higher mean indicates that the returns are higher on average.')
 		st.write('In below chart the risk and return of the stocks you selected are calculated using below formulas:')
