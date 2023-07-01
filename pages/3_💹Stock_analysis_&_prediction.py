@@ -4,6 +4,7 @@ from datetime import date
 import yfinance as yf
 import requests
 import pandas as pd
+import pandas_ta as ta
 from bs4 import BeautifulSoup
 import datetime
 import seaborn as sns
