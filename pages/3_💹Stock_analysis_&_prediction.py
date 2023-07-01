@@ -187,7 +187,61 @@ with st.container():
 	fig4.update_layout(height=300, width=800, title_text='Volume')
 	st.plotly_chart(fig4)
 
+with st.container():
+	st.subheader('Investment Analysis')
 
+	analyzed_stocks = st.multiselect('Please chose the stocks you want to analyze: ', options = stocks )
+	if analyzed_stocks == []:
+		st.write("Please select max 2 stocks.")
+	
+	elif len(analyzed_stocks) == 1:
+		st.write("Please chose another stock to analyze.")
+	elif len(analyzed_stocks) >2:
+		st.write("You slected more than 2, please select max 2 stocks.")
+	else:
+		st.write(analyzed_stocks[0])
+		df1=load_data(analyzed_stocks[0])['Adj Close'].to_frame()
+		df1['Adj Close'].fillna(0)
+		df1 = df1.rename(columns={"Adj Close": analyzed_stocks[0]+'_Adj Close'})
+		df2=load_data(analyzed_stocks[1])['Adj Close'].to_frame()
+		df2['Adj Close'].fillna(0)
+		df2 = df2.rename(columns={"Adj Close": analyzed_stocks[1]+'_Adj Close'})
+		df_3 = pd.concat([df1, df2], axis=1).pct_change()
+		st.write(df_3)
+		# plot the correlation between 2 stocks
+		st.write('Correlation is a statistic that measures the degree to which two variables move in relation to each other. ')
+		st.write('In below jointplot chart, we compare the daily return of the two stocks you have selected to check how they correlate.')
+		jointplot=sns.jointplot(df_3, x=analyzed_stocks[0]+'_Adj Close',y=analyzed_stocks[1]+'_Adj Close', kind='scatter')
+		#st.plotly_chart(jointplot)
+		# Get the jointplot data for plotting
+		x = jointplot.ax_joint.collections[0].get_offsets()[:, 0]
+		y = jointplot.ax_joint.collections[0].get_offsets()[:, 1]
+
+		scatter_plot = go.Scatter(x=x, y=y, mode='markers')
+		# Create a Plotly layout
+		layout = go.Layout(title="Correlation using Jointplot",xaxis=dict(title=analyzed_stocks[0]),yaxis=dict(title=analyzed_stocks[1]))
+		fig6 = go.Figure(data=[scatter_plot], layout=layout)
+		st.plotly_chart(fig6)
+	
+		# Calculate risk
+		
+		rets = df_3.dropna()
+		st.write('Risk is the uncertainty of the return on an investment. It is measured by the standard deviation of the returns. A higher standard deviation indicates that the returns are more volatile, and therefore riskier.')
+		st.write('Return is the income that an investment generates. It is measured by the mean of the returns. A higher mean indicates that the returns are higher on average.')
+		st.write('In below chart the risk and return of the stocks you selected are calculated using below formulas:')
+		st.write(' - Risk: Standard deviation of returns')
+		st.write(' - Return: Mean of returns')
+		area = np.pi * 10
+		# Create a Plotly scatter plot & layout
+		scatter_plot = go.Scatter(x=rets.mean(),y=rets.std(),mode='markers',marker=dict(size=area),	)
+		layout = go.Layout(title='Expected Return vs. Risk',xaxis=dict(title='Expected return'),yaxis=dict(title='Risk'),)
+		fig7 = go.Figure(data=[scatter_plot], layout=layout)
+
+		# Annotate the points with column labels
+		for label, x, y in zip(rets.columns, rets.mean(), rets.std()):
+			fig7.add_annotation(x=x,y=y,text=str(label),xanchor='left',showarrow=True,arrowhead=1,arrowsize=1,arrowcolor='lightgreen',ax=50,ay=-50,font=dict(family="Arial",size=18,color="black")	)
+		# Display the Plotly figure in Streamlit
+		st.plotly_chart(fig7)
 
 
 
