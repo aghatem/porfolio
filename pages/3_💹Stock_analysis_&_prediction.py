@@ -8,7 +8,7 @@ import pandas_ta as ta
 from bs4 import BeautifulSoup
 import datetime
 import seaborn as sns
-
+import numpy as np
 from prophet import Prophet
 from prophet.plot import plot_plotly
 from plotly import graph_objs as go
