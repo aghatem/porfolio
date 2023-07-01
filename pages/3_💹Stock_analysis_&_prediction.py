@@ -101,10 +101,12 @@ TODAY = date.today().strftime("%Y-%m-%d")
 
 #@st.cache_data
 def load_data(ticker):
-    data = yf.download(ticker, START, TODAY)
+    data = yf.download(ticker, START, TODAY, interval=selected_interval)
     data.reset_index(inplace=True)
     return data
 
+interval = ['1d','1wk']
+selected_interval = st.radio("Select an option", options = interval, horizontal=True)
 tab1 , tab2 = st.tabs([ "Charts","Data"])
 
 with tab2:
@@ -151,10 +153,38 @@ with st.expander("For a closer look to the stock data, click here !"):
 	
 with st.container():
 	st.subheader('Stock indicators')
-	metrics = {'SMA (Simple Moving Average)','EMA (Exponential Moving Average)','BB (Bollinger Bands)', 'RSI (Relative Strength Index)','(MACD (Moving Average Convergence Divergence)','(VWAP (Volume Weighted Average Price )','(STOCH (Stochastic Oscillator )'}
-	selected_metric = st.multiselect('Please chose the indicators you want to analyze: ', options = metrics, default= ['SMA (Simple Moving Average)'] )
-	st.write('This section is currently being updated, Stay tuned!')
 
+	metrics = {'EMAF','RSI','SMA','EMAM','EMAS'}
+	selected_metric = st.multiselect('Please chose the indicators you want to analyze: ', options = metrics, default= ['SMA'] )
+
+	data['RSI']=ta.rsi(data.Close, length=15)
+	data['EMAF']=ta.ema(data.Close, length=20)
+	data['EMAM']=ta.ema(data.Close, length=100)
+	data['EMAS']=ta.ema(data.Close, length=150)
+	data['SMA'] = ta.sma(data.Close,timeperiod=10)
+
+	
+	fig3 = go.Figure()
+	fig3.add_trace(go.Candlestick(x=data.index,open=data['Open'],high=data['High'],low=data['Low'],
+	close=data['Close'], name="Price"))
+	if 'SMA' in selected_metric:
+			fig3.add_trace(go.Scatter(x=data.index, y=data['SMA'], name="SMA"))
+	if 'EMAF' in selected_metric:		
+			fig3.add_trace(go.Scatter(x=data.index, y=data['EMAF'], name="EMAF"))
+	if 'RSI' in selected_metric:		
+			fig3.add_trace(go.Scatter(x=data.index, y=data['RSI'], name="RSI"))
+	if 'EMAM' in selected_metric:		
+			fig3.add_trace(go.Scatter(x=data.index, y=data['EMAM'], name="EMAM"))
+	if 'EMAS' in selected_metric:		
+			fig3.add_trace(go.Scatter(x=data.index, y=data['EMAS'], name="EMAS"))
+
+	fig3.update_layout(height=600, width=800, title_text='Stock Metrics')
+	st.plotly_chart(fig3)
+
+	fig4=go.Figure()
+	fig4.add_trace(go.Bar(x=data.index, y=data['Volume'], name='Volume'))
+	fig4.update_layout(height=300, width=800, title_text='Volume')
+	st.plotly_chart(fig4)
 
 
 
