@@ -103,7 +103,7 @@ TODAY = date.today().strftime("%Y-%m-%d")
 #@st.cache_data
 def load_data(ticker):
     data = yf.download(ticker, START, TODAY, interval=selected_interval)
-    data.reset_index(inplace=True)
+    #data.reset_index(inplace=True)
     return data
 
 interval = ['1d','1wk']
