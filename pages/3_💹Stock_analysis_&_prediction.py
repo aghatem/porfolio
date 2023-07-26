@@ -329,7 +329,7 @@ with st.container():
 
 		# Train the model
 		model.fit(x_train, y_train, batch_size=1, epochs=1)
-		import keras.utils.plot_model
+		#import keras.utils.plot_model
 		
 		#fig99 = keras.utils.plot_model(model, show_shapes=True, show_layer_names=True)
 		
