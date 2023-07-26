@@ -133,7 +133,7 @@ with tab2:
 	data = load_data(selected_stock)
 	
 	cm = sns.light_palette("green", as_cmap=True)
-	data.style.background_gradient(cmap=cm)
+	#data.style.background_gradient(cmap=cm)
 	st.write(data.tail(50))
 	st.write(len(data))
 	st.write(data.columns.tolist())
