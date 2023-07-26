@@ -312,76 +312,55 @@ with st.container():
 		# Reshape the data
 		x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
 		
-	# with st.spinner("Training the LSTM model with 95% of the dataset..."):
-	# 	# x_train.shape
-	# 	from keras.models import Sequential
-	# 	from keras.layers import Dense, LSTM
-
-	# 	# Build the LSTM model
-	# 	model = Sequential()
-	# 	model.add(LSTM(128, return_sequences=True, input_shape= (x_train.shape[1], 1)))
-	# 	model.add(LSTM(64, return_sequences=False))
-	# 	model.add(Dense(25))
-	# 	model.add(Dense(1))
-
-	# 	# Compile the model
-	# 	model.compile(optimizer='adam', loss='mean_squared_error')
-
-	# 	# Train the model
-	# 	model.fit(x_train, y_train, batch_size=1, epochs=1)
-	# 	import keras.utils.vis_utils
-		
-	# 	#fig99 = keras.utils.vis_utils.plot_model(model, show_shapes=True, show_layer_names=True)
-		
-	# with st.spinner("Evaluating the model & calculating the root mean squared error (RMSE)"):
-	# 	# Create the testing data set
-	# 	# Create a new array containing scaled values 
-	# 	test_data = scaled_data[training_data_len - 60: , :]
-	# 	# Create the data sets x_test and y_test
-	# 	x_test = []
-	# 	y_test = reshaped_dataset[training_data_len:, :]
-	# 	for i in range(60, len(test_data)):
-	# 		x_test.append(test_data[i-60:i, 0])
+	with st.spinner("Evaluating the model & calculating the root mean squared error (RMSE)"):
+		# Create the testing data set
+		# Create a new array containing scaled values 
+		test_data = scaled_data[training_data_len - 60: , :]
+		# Create the data sets x_test and y_test
+		x_test = []
+		y_test = reshaped_dataset[training_data_len:, :]
+		for i in range(60, len(test_data)):
+			x_test.append(test_data[i-60:i, 0])
 			
-	# 	# Convert the data to a numpy array
-	# 	x_test = np.array(x_test)
+		# Convert the data to a numpy array
+		x_test = np.array(x_test)
 
-	# 	# Reshape the data
-	# 	x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1 ))
+		# Reshape the data
+		x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1 ))
 
-	# 	# Get the models predicted price values 
-	# 	predictions = model.predict(x_test)
-	# 	predictions = scaler.inverse_transform(predictions)
+		# Get the models predicted price values 
+		predictions = model.predict(x_test)
+		predictions = scaler.inverse_transform(predictions)
 
-	# 	# Get the root mean squared error (RMSE)
-	# 	rmse = np.sqrt(np.mean(((predictions - y_test) ** 2)))
-	# 	st.write('The rmse is', rmse, ' a lower RMSE means that the predicted values are closer to the actual values.')
+		# Get the root mean squared error (RMSE)
+		rmse = np.sqrt(np.mean(((predictions - y_test) ** 2)))
+		st.write('The rmse is', rmse, ' a lower RMSE means that the predicted values are closer to the actual values.')
 
-	# with st.spinner('Ploting the training and the model prediction '):
+	with st.spinner('Ploting the training and the model prediction '):
 		
 		
-	# 	plot_tab , data_tab = st.tabs([ "Prediction plot","Prediction Data"])
+		plot_tab , data_tab = st.tabs([ "Prediction plot","Prediction Data"])
 		
-	# 	with data_tab:
-	# 		# Plot the data
-	# 		train = data[:training_data_len]
-	# 		valid = data[training_data_len:]
-	# 		valid['Predictions'] = predictions
-	# 		results = valid[['Close','Predictions']].copy()
-	# 		st.write(results.tail(20))
+		with data_tab:
+			# Plot the data
+			train = data[:training_data_len]
+			valid = data[training_data_len:]
+			valid['Predictions'] = predictions
+			results = valid[['Close','Predictions']].copy()
+			st.write(results.tail(20))
 
-	# 	with plot_tab:
-	# 		# Visualize the data
-	# 		fig8, ax = plt.subplots(figsize=(16,6))
-	# 		#ax.set_title(selected_stock, 'model')
-	# 		ax.set_xlabel('Date', fontsize=18)
-	# 		ax.set_ylabel('Close Price USD ($)', fontsize=18)
-	# 		ax.plot(train['Close'])
-	# 		ax.plot(valid[['Close', 'Predictions']])
-	# 		ax.legend(['Train', 'Eval', 'Predictions'], loc='lower right')
-	# 		st.pyplot(fig8)
-	# st.write('The predicted closing value is: ', round(results.iloc[len(results)-1,1],2), ' $')
-	# st.write('There are numerous ways to improve the model accuracy. For instance the length of the dataset, it is recommended to change the start date you selected at the beginning to increase the model performance and accuracy features selection. There are other techniques to improve the model accuracy which are not in the scope of this exercise, like increasing the number of layers in the RNN model architecture, optimizing the number of epochs, using multiple models, apply regularization to prevent overfitting, utilize cross-validation techniques to obtain a more reliable estimate of the models performance.')
+		with plot_tab:
+			# Visualize the data
+			fig8, ax = plt.subplots(figsize=(16,6))
+			#ax.set_title(selected_stock, 'model')
+			ax.set_xlabel('Date', fontsize=18)
+			ax.set_ylabel('Close Price USD ($)', fontsize=18)
+			ax.plot(train['Close'])
+			ax.plot(valid[['Close', 'Predictions']])
+			ax.legend(['Train', 'Eval', 'Predictions'], loc='lower right')
+			st.pyplot(fig8)
+	st.write('The predicted closing value is: ', round(results.iloc[len(results)-1,1],2), ' $')
+	st.write('There are numerous ways to improve the model accuracy. For instance the length of the dataset, it is recommended to change the start date you selected at the beginning to increase the model performance and accuracy features selection. There are other techniques to improve the model accuracy which are not in the scope of this exercise, like increasing the number of layers in the RNN model architecture, optimizing the number of epochs, using multiple models, apply regularization to prevent overfitting, utilize cross-validation techniques to obtain a more reliable estimate of the models performance.')
 
 
 
