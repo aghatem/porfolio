@@ -358,8 +358,8 @@ def nearby_schools(schools,user_post,user_crd,f,ds_db,rank, rating_n):
 
 def main ():
     #load schools database
-    schools = pd.read_csv(r'schools_db.csv', engine='python', encoding='ISO-8859-1')
-
+    #schools = pd.read_csv(r'schools_db.csv', engine='python', encoding='ISO-8859-1')
+    schools = pd.read_parquet('schools.parquet')
     #load districts database
     ds_db = pd.read_csv('po_to_district.csv', engine='python', encoding='ISO-8859-1')
     #load districts rating
