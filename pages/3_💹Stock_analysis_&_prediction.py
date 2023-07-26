@@ -312,6 +312,27 @@ with st.container():
 		# Reshape the data
 		x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
 		
+	with st.spinner("Training the LSTM model with 95% of the dataset..."):
+		# x_train.shape
+		from keras.models import Sequential
+		from keras.layers import Dense, LSTM
+
+		# Build the LSTM model
+		model = Sequential()
+		model.add(LSTM(128, return_sequences=True, input_shape= (x_train.shape[1], 1)))
+		model.add(LSTM(64, return_sequences=False))
+		model.add(Dense(25))
+		model.add(Dense(1))
+
+		# Compile the model
+		model.compile(optimizer='adam', loss='mean_squared_error')
+
+		# Train the model
+		model.fit(x_train, y_train, batch_size=1, epochs=1)
+		import keras.utils.vis_utils
+		
+		#fig99 = keras.utils.vis_utils.plot_model(model, show_shapes=True, show_layer_names=True)
+		
 	with st.spinner("Evaluating the model & calculating the root mean squared error (RMSE)"):
 		# Create the testing data set
 		# Create a new array containing scaled values 
