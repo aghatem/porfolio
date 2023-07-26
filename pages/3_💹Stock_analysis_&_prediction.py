@@ -329,9 +329,9 @@ with st.container():
 
 		# Train the model
 		model.fit(x_train, y_train, batch_size=1, epochs=1)
-		import keras.utils.vis_utils
+		import keras.utils.plot_model
 		
-		#fig99 = keras.utils.vis_utils.plot_model(model, show_shapes=True, show_layer_names=True)
+		#fig99 = keras.utils.plot_model(model, show_shapes=True, show_layer_names=True)
 		
 	with st.spinner("Evaluating the model & calculating the root mean squared error (RMSE)"):
 		# Create the testing data set
