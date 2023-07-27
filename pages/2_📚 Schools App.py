@@ -12,7 +12,7 @@ import fastparquet
 
 
 def input():
-    st.title('UK Schools checker App')
+    st.title('UK Schools App')
     st.write('Check nearest schools in UK using home postcodes and provides OFSTED ranking, school type, distance from home & transport duration with Google Geo-map APIs This web app helps UK residents to assess schools in their neighberhood & select the suitable school based on multiple criteria.')
 # get user Post code
     st.sidebar.subheader("User Post Code")
