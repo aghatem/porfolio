@@ -156,7 +156,7 @@ with tab1:
 col1, col2 = st.columns(2)
 with col1:
 	ticker = yf.Ticker(str(selected_stock))
-
+	st.write(ticker.info['country'])
 	st.subheader(selected_stock)
 	st.write(selected_stock,' company is based in ', ticker.info['country'], ' , its main industry is ',ticker.info['industry'],' and its website is ',ticker.info['website'])
 	st.write('The trading volume is',ticker.info['marketCap'] ,' and the market cap is ',ticker.info['volume'])
