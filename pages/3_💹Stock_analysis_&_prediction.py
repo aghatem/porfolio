@@ -156,7 +156,7 @@ with tab1:
 col1, col2 = st.columns(2)
 with col1:
 	ticker = yf.Ticker(str(selected_stock))
-	st.write(ticker.info['country'])
+	
 	st.subheader(selected_stock)
 	st.write(selected_stock,' company is based in ', ticker.info['country'], ' , its main industry is ',ticker.info['industry'],' and its website is ',ticker.info['website'])
 	st.write('The trading volume is',ticker.info['marketCap'] ,' and the market cap is ',ticker.info['volume'])
@@ -167,19 +167,19 @@ with col1:
 		temp.reset_index(inplace=True)
 		temp.columns = ["Attribute", "Recent"]
 		st.write(temp) 
-with col2:
+#with col2:
 	
-	st.subheader('More from ChatGPT plugin: ')
-	from langchain import OpenAI
-	import os
-	gpt_mofta7 = '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'
-	os.environ["OPENAI_API_KEY"] =gpt_mofta7
+	#st.subheader('More from ChatGPT plugin: ')
+	#from langchain import OpenAI
+	#import os
+	#gpt_mofta7 = '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'
+	#os.environ["OPENAI_API_KEY"] =gpt_mofta7
 
-	from langchain.llms import OpenAI
-	llm = OpenAI(temperature=0.9)  # model_name="text-davinci-003"
-	text = st.text_area('Hi there! Im your assistant, and will provide you answers powered by ChatGPT ',value='Hi ChatGPT, How is stock '+ selected_stock +" is performing this week?")
-	st.write('## ChatGP: ')
-	st.markdown(llm(text))
+	#from langchain.llms import OpenAI
+	#llm = OpenAI(temperature=0.9)  # model_name="text-davinci-003"
+	#text = st.text_area('Hi there! Im your assistant, and will provide you answers powered by ChatGPT ',value='Hi ChatGPT, How is stock '+ selected_stock +" is performing this week?")
+	#st.write('## ChatGP: ')
+	#st.markdown(llm(text))
 
 
 
