@@ -362,13 +362,13 @@ with st.container():
 		
 		plot_tab , data_tab = st.tabs([ "Prediction plot","Prediction Data"])
 		
-		with data_tab:
+		#with data_tab:
 			# Plot the data
-			train = data[:training_data_len]
-			valid = data[training_data_len:]
-			valid['Predictions'] = predictions
-			results = valid[['Close','Predictions']].copy()
-			st.write(results.tail(20))
+		#	train = data[:training_data_len]
+		#	valid = data[training_data_len:]
+		#	valid['Predictions'] = predictions
+		#	results = valid[['Close','Predictions']].copy()
+		#	st.write(results.tail(20))
 
 		with plot_tab:
 			# Visualize the data
