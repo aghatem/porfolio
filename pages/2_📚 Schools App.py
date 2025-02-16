@@ -50,7 +50,7 @@ def Post_Code_to_Coordinates(pcode):
         st.error(f"An error occurred")
         return None
 
-@st.cache(suppress_st_warning=True)
+@st.cache_data(suppress_st_warning=True)
 def mapit(lat,long):
     # center the map on British Muserum WC1B3DG
     global m
