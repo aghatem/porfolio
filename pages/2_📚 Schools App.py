@@ -35,21 +35,41 @@ def input():
     return user_post, user_dist ,user_crd, focus
     
 # get user coordinates
+# def Post_Code_to_Coordinates(pcode):
+#     try:
+#         coord_API = "http://api.getthedata.com/postcode/"
+#         c_r = requests.get(coord_API+pcode)
+#         #print(c_r.json())
+#         #lat = c_r.json()["data"][0]["latitude"]
+#         coord = c_r.json()["data"]
+#         lat = coord['latitude']
+#         long = coord['longitude']
+#         crd =lat+"_"+long
+#         return lat, long
+#     except TypeError:
+#         st.error(f"An error occurred")
+#         return None
 def Post_Code_to_Coordinates(pcode):
     try:
-        coord_API = "http://api.getthedata.com/postcode/"
-        c_r = requests.get(coord_API+pcode)
-        #print(c_r.json())
-        #lat = c_r.json()["data"][0]["latitude"]
-        coord = c_r.json()["data"]
-        lat = coord['latitude']
-        long = coord['longitude']
-        crd =lat+"_"+long
-        return lat, long
-    except TypeError:
-        st.error(f"An error occurred")
+        # Format postcode (remove spaces)
+        pcode = pcode.replace(" ", "")
+        
+        coord_API = "https://api.postcodes.io/postcodes/"
+        c_r = requests.get(coord_API + pcode)
+        
+        if c_r.status_code == 200:
+            coord = c_r.json()["result"]  # Note: postcodes.io uses "result" instead of "data"
+            lat = str(coord['latitude'])   # Converting to string to match your original format
+            long = str(coord['longitude']) # Converting to string to match your original format
+            crd = lat + "_" + long
+            return lat, long
+        else:
+            st.error(f"Invalid postcode or API error")
+            return None
+            
+    except Exception as e:
+        st.error(f"An error occurred: {str(e)}")
         return None
-
 @st.cache_data
 def mapit(lat,long):
     # center the map on British Muserum WC1B3DG
