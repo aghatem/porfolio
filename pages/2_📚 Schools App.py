@@ -18,7 +18,16 @@ def input():
     st.sidebar.subheader("User Post Code")
     user_post = st.sidebar.text_input("Please enter your post code: 🔎", "WC1B3DG").upper()
     button_was_clicked = st.sidebar.button("SUBMIT")
+    default_lat = 51.519364
+    default_long = -0.126848
     user_crd = Post_Code_to_Coordinates(user_post)
+    if user_crd is None:
+        if user_post == "WC1B3DG":
+            st.info(f"Could not get coordinates for default postcode '{user_post}' via API. Using hardcoded coordinates (Lat: {default_lat}, Long: {default_long}).")
+            user_crd = (default_lat, default_long)
+        else:
+            st.error(f"Could not get coordinates for postcode '{user_post}'. Please check the postcode and your internet connection.")
+            return user_post, user_post[0:3], None, 3 # Return None for user_crd to indicate failure
     user_dist = user_post[0:3]
  
     
@@ -34,42 +43,51 @@ def input():
     
     return user_post, user_dist ,user_crd, focus
     
-# get user coordinates
-# def Post_Code_to_Coordinates(pcode):
-#     try:
-#         coord_API = "http://api.getthedata.com/postcode/"
-#         c_r = requests.get(coord_API+pcode)
-#         #print(c_r.json())
-#         #lat = c_r.json()["data"][0]["latitude"]
-#         coord = c_r.json()["data"]
-#         lat = coord['latitude']
-#         long = coord['longitude']
-#         crd =lat+"_"+long
-#         return lat, long
-#     except TypeError:
-#         st.error(f"An error occurred")
-#         return None
-def Post_Code_to_Coordinates(pcode):
+def Post_Code_to_Coordinates(postcode):
     try:
-        # Format postcode (remove spaces)
-        pcode = pcode.replace(" ", "")
-        
-        coord_API = "https://api.postcodes.io/postcodes/"
-        c_r = requests.get(coord_API + pcode)
-        
-        if c_r.status_code == 200:
-            coord = c_r.json()["result"]  # Note: postcodes.io uses "result" instead of "data"
-            lat = str(coord['latitude'])   # Converting to string to match your original format
-            long = str(coord['longitude']) # Converting to string to match your original format
-            crd = lat + "_" + long
-            return lat, long
-        else:
-            st.error(f"Invalid postcode or API error")
+        # Check if postcode is empty or None
+        if not postcode or postcode.strip() == '':
             return None
             
-    except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
+        # Format postcode (remove spaces and convert to uppercase)
+        postcode = postcode.replace(" ", "").upper()
+        
+        # Basic validation - UK postcodes should be 5-7 characters
+        if len(postcode) < 5 or len(postcode) > 7:
+            return None
+        
+        url = f"https://api.postcodes.io/postcodes/{postcode}"
+        
+        # Add timeout to prevent hanging
+        response = requests.get(url, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('status') == 200 and 'result' in data:
+                lat = data['result'].get('latitude')
+                long = data['result'].get('longitude')
+                
+                # Validate coordinates are numbers
+                if lat is not None and long is not None:
+                    return float(lat), float(long)
+                else:
+                    return None
+            else:
+                return None
+        else:
+            # Don't show error for each failed postcode - just return None
+            return None
+            
+    except requests.exceptions.Timeout:
+        st.warning(f"Timeout occurred while fetching coordinates for postcode: {postcode}")
         return None
+    except requests.exceptions.RequestException as e:
+        st.warning(f"Network error occurred for postcode {postcode}: {str(e)}")
+        return None
+    except Exception as e:
+        st.warning(f"Unexpected error for postcode {postcode}: {str(e)}")
+        return None
+
 @st.cache_data
 def mapit(lat,long):
     # center the map on British Muserum WC1B3DG
@@ -249,15 +267,7 @@ def create_pie_chart(ds_db,schools,rank, rating_n, user_post):
             st.write(styler, unsafe_allow_html=True)
 
 
-
-
-
-
-
 def nearby_schools(schools,user_post,user_crd,f,ds_db,rank, rating_n):
-
-
-    
     # Insert a new column in the df located in 1st column with name District and data to be added   
     schools.insert(0, "District", True)
     # fill new column with the first 3 characters of the postcode
@@ -279,104 +289,151 @@ def nearby_schools(schools,user_post,user_crd,f,ds_db,rank, rating_n):
     selected_schools.insert(24, "long", True)
     # Adding distance
     selected_schools.insert(25, "Distance", True)
-    #st.write(selected_schools.head(20))
-    for i in range (0,len(selected_schools)):
-        selected_schools.iloc[i,23] = Post_Code_to_Coordinates(selected_schools.iloc[i,4])[0]
-        selected_schools.iloc[i,24] = Post_Code_to_Coordinates(selected_schools.iloc[i,4])[1]
-        selected_schools.iloc[i,25] = get_distance(float(selected_schools.iloc[i,23]),float(selected_schools.iloc[i,24]),float(user_crd[0]),float(user_crd[1]))
-
+    
+    # Process each school's coordinates with error handling
+    for i in range(0, len(selected_schools)):
+        school_postcode = selected_schools.iloc[i, 4]
+        coordinates = Post_Code_to_Coordinates(school_postcode)
         
+        if coordinates is not None:
+            # Successfully got coordinates
+            selected_schools.iloc[i, 23] = coordinates[0]  # latitude
+            selected_schools.iloc[i, 24] = coordinates[1]  # longitude
+            # Calculate distance
+            selected_schools.iloc[i, 25] = get_distance(
+                float(coordinates[0]), 
+                float(coordinates[1]), 
+                float(user_crd[0]), 
+                float(user_crd[1])
+            )
+        else:
+            # Failed to get coordinates - use default if it's the default postcode
+            if school_postcode == "WC1B3DG":
+                selected_schools.iloc[i, 23] = 51.519364  # default latitude
+                selected_schools.iloc[i, 24] = -0.126848  # default longitude
+                selected_schools.iloc[i, 25] = get_distance(
+                    51.519364, 
+                    -0.126848, 
+                    float(user_crd[0]), 
+                    float(user_crd[1])
+                )
+            else:
+                # For other failed postcodes, set invalid markers
+                st.warning(f"Could not get coordinates for school postcode: {school_postcode}")
+                selected_schools.iloc[i, 23] = 0.0  # invalid latitude
+                selected_schools.iloc[i, 24] = 0.0  # invalid longitude
+                selected_schools.iloc[i, 25] = 999999  # very large distance to indicate unknown
+    
+    # Filter out schools with invalid coordinates for mapping
+    valid_schools = selected_schools[
+        (selected_schools['lat'] != 0.0) & 
+        (selected_schools['long'] != 0.0)
+    ]
+    
+    # Create map with valid schools only
     global m
-    m = folium.Map(location=[user_crd[0] , user_crd[1]], tiles="OpenStreetMap",zoom_start=14)
-    tooltip = "" 
-    folium.Marker([user_crd[0] , user_crd[1]],color='black' ,popup="Your Home",icon=folium.Icon(color='green', icon_color='white', icon='tint')).add_to(m)
-    for i in range (0,len(selected_schools)):
-        
-        folium.Marker([float(selected_schools.iloc[i,23]),float(selected_schools.iloc[i,24])], popup = [selected_schools.iloc[i,0],  selected_schools.iloc[i,1], selected_schools.iloc[i,22] ]).add_to(m)
+    m = folium.Map(location=[user_crd[0], user_crd[1]], tiles="OpenStreetMap", zoom_start=14)
+    tooltip = ""
+    folium.Marker([user_crd[0], user_crd[1]], color='black', popup="Your Home", 
+                  icon=folium.Icon(color='green', icon_color='white', icon='tint')).add_to(m)
+    
+    for i in range(0, len(valid_schools)):
+        folium.Marker([float(valid_schools.iloc[i, 23]), float(valid_schools.iloc[i, 24])], 
+                      popup=[valid_schools.iloc[i, 0], valid_schools.iloc[i, 1], valid_schools.iloc[i, 22]]).add_to(m)
+    
     folium_static(m)
     
-    min_dist =selected_schools['Distance'].min()
-    nearest_school = selected_schools.loc[(selected_schools['Distance']==min_dist)]
-    st.write("Nearest School Name is",nearest_school.iloc[0,0], " which is far ", min_dist , " meters from your home")
-    st.write('You can find more details about ' ,nearest_school.iloc[0,0], 'by visiting its website below',selected_schools.loc[selected_schools['EstablishmentName'] == nearest_school.iloc[0,0], 'SchoolWebsite'])
+    # Find nearest school (excluding invalid distances)
+    valid_distances = selected_schools[selected_schools['Distance'] != 999999]
+    if len(valid_distances) > 0:
+        min_dist = valid_distances['Distance'].min()
+        nearest_school = valid_distances.loc[(valid_distances['Distance'] == min_dist)]
+        st.write("Nearest School Name is", nearest_school.iloc[0, 0], " which is far ", min_dist, " meters from your home")
+        st.write('You can find more details about ', nearest_school.iloc[0, 0], 'by visiting its website below', 
+                 selected_schools.loc[selected_schools['EstablishmentName'] == nearest_school.iloc[0, 0], 'SchoolWebsite'])
+    else:
+        st.error("Could not find any schools with valid coordinates in your area.")
     
-    
-    
-
-
     # Display rating chart
     st.subheader('Schools Statistics  ')
     st.write('These chart display the Ofsted ratings, type, phase of education and gender for the school in the search area you selected')
-    create_pie_chart(ds_db,schools,rank, rating_n, user_post)
+    create_pie_chart(ds_db, schools, rank, rating_n, user_post)
 
-    
     st.title('Search for Schools:')
     st.write('Use the filter options in the left sidebar to taoilor your school search and check the resulting schools in below table. You can also press below Filter Map to plot the filtered schools inthe map.')
-    pivot = pd.crosstab(index=[selected_schools['Town'],selected_schools['PhaseOfEducation (name)']], columns=[selected_schools['OfstedRating (name)']],  margins=True)
+    pivot = pd.crosstab(index=[selected_schools['Town'], selected_schools['PhaseOfEducation (name)']], 
+                        columns=[selected_schools['OfstedRating (name)']], margins=True)
     with st.expander("Click to select see the performance of schools in the filtered area: "):
         st.write(pivot)
     
     with st.container():
         # get schools matching filter criteria, to make all parameters in same form replace st with myform
-        myform= st.sidebar.form("Form2")
-            # filter on distance from home
+        myform = st.sidebar.form("Form2")
+        # filter on distance from home
         dist_home = myform.slider('Distance from home in meters:', min_value=20, max_value=4000, step=50, value=1000, key=1)
-        #choose phase of education
-        phase= ("Any","Nursery", "Primary", "Secondary", "16 plus","All-through" )
+        # choose phase of education
+        phase = ("Any", "Nursery", "Primary", "Secondary", "16 plus", "All-through")
         phase_choice = myform.selectbox('Phase of educaton:', phase)
-        #choose ofsted rating
-        ofsted= ("Any","Good", "Outstanding","Special Measures")
-        ofsted_choice =  myform.selectbox('School OFsted Rating:', ofsted)
-        #Choose mean of transport
-        transport = ( "Car", "Public Transport", "Walking", "Bike" )
+        # choose ofsted rating
+        ofsted = ("Any", "Good", "Outstanding", "Special Measures")
+        ofsted_choice = myform.selectbox('School OFsted Rating:', ofsted)
+        # Choose mean of transport
+        transport = ("Car", "Public Transport", "Walking", "Bike")
         selected_Transport = myform.selectbox('Enter the mean of transport', transport)
-        #Filter = st.sidebar.button("Filter")
-        submitted =  myform.form_submit_button(label = "Filter")
+        submitted = myform.form_submit_button(label="Filter")
+        
         df_selection = selected_schools
         if submitted:
             if ofsted_choice == 'Any' and phase_choice == 'Any':
                 df_selection = selected_schools.loc[(selected_schools['Distance'] <= dist_home)]
             elif phase_choice == 'Any':
-                df_selection = selected_schools.loc[(selected_schools['Distance'] <= dist_home)  & (selected_schools['OfstedRating (name)'] == ofsted_choice)]
+                df_selection = selected_schools.loc[(selected_schools['Distance'] <= dist_home) & 
+                                                    (selected_schools['OfstedRating (name)'] == ofsted_choice)]
             elif ofsted_choice == 'Any':
-                df_selection = selected_schools.loc[(selected_schools['Distance'] <= dist_home) & (selected_schools['PhaseOfEducation (name)'] == phase_choice)]
-
+                df_selection = selected_schools.loc[(selected_schools['Distance'] <= dist_home) & 
+                                                    (selected_schools['PhaseOfEducation (name)'] == phase_choice)]
             else:
-                df_selection = selected_schools.loc[(selected_schools['Distance'] <= dist_home) & (selected_schools['PhaseOfEducation (name)'] == phase_choice) & (selected_schools['OfstedRating (name)'] == ofsted_choice)]
+                df_selection = selected_schools.loc[(selected_schools['Distance'] <= dist_home) & 
+                                                    (selected_schools['PhaseOfEducation (name)'] == phase_choice) & 
+                                                    (selected_schools['OfstedRating (name)'] == ofsted_choice)]
 
-            
-        
-        #Travel_GAPI(user_crd[0] , user_crd[1],newdf[0,23],newdf[0,24],selected_Transport)
-
-        st.subheader("Filtered schools: " )
-        
-        st.write('You have filtered on schools which are far',dist_home, ' meters from your postcode, and in the ', phase_choice,'phase of education', ' and have been ranted by OFSTED to be ',ofsted_choice,' and you prefer to arrive school by ',selected_Transport,'.') 
-        st.write(  " The number of schools which match your filter criteria is : ", len(df_selection) )
-
+        st.subheader("Filtered schools: ")
+        st.write('You have filtered on schools which are far', dist_home, ' meters from your postcode, and in the ', 
+                 phase_choice, 'phase of education', ' and have been ranted by OFSTED to be ', ofsted_choice, 
+                 ' and you prefer to arrive school by ', selected_Transport, '.')
+        st.write(" The number of schools which match your filter criteria is : ", len(df_selection))
         st.write(df_selection.astype(str))
 
         st.subheader('Search Map')
-        radio_but2 = st.radio(label = '', options = ['Remove Filter Map', 'Filter Map'])
+        radio_but2 = st.radio(label='', options=['Remove Filter Map', 'Filter Map'])
         st.write('<style>div.row-widget.stRadio > div{flex-direction:row;}</style>', unsafe_allow_html=True)
             
         if (radio_but2 == 'Filter Map'):
-            m2 = folium.Map(location=[user_crd[0] , user_crd[1]], tiles="OpenStreetMap",zoom_start=16)
-            tooltip = "Liberty Bell" 
-            folium.Marker([user_crd[0], user_crd[1]], color='black' ,popup="Your Home",icon=folium.Icon(color='green', icon_color='white', icon='tint')).add_to(m2)
-            for i in range (0,len(df_selection)):
+            # Filter out invalid coordinates for the filtered map too
+            valid_filtered_schools = df_selection[
+                (df_selection['lat'] != 0.0) & 
+                (df_selection['long'] != 0.0)
+            ]
             
-                folium.Marker([float(df_selection.iloc[i,23]),float(df_selection.iloc[i,24])], popup = [df_selection.iloc[i,0],  df_selection.iloc[i,1], df_selection.iloc[i,22] ]).add_to(m2)
+            m2 = folium.Map(location=[user_crd[0], user_crd[1]], tiles="OpenStreetMap", zoom_start=16)
+            tooltip = "Liberty Bell"
+            folium.Marker([user_crd[0], user_crd[1]], color='black', popup="Your Home", 
+                          icon=folium.Icon(color='green', icon_color='white', icon='tint')).add_to(m2)
+            
+            for i in range(0, len(valid_filtered_schools)):
+                folium.Marker([float(valid_filtered_schools.iloc[i, 23]), float(valid_filtered_schools.iloc[i, 24])], 
+                              popup=[valid_filtered_schools.iloc[i, 0], valid_filtered_schools.iloc[i, 1], 
+                                     valid_filtered_schools.iloc[i, 22]]).add_to(m2)
             folium_static(m2)
         elif (radio_but2 == 'Remove Filter Map'):
             filter_map = 2
     
-        
         school_names = df_selection['EstablishmentName'].values.tolist()
-        filtered_schools =  st.selectbox('You can find in below table a detailed list of the filtered schools :' , school_names)
+        filtered_schools = st.selectbox('You can find in below table a detailed list of the filtered schools :' , school_names)
         st.write(df_selection.loc[df_selection['EstablishmentName'] == filtered_schools].transpose().astype(str))
-    
 
-def main ():
+
+def main():
     #load schools database
     schools = pd.read_csv(r'~/projets/porfolio/pages/schools_db.csv', engine='python', encoding='ISO-8859-1')
     
@@ -396,7 +453,6 @@ def main ():
     user_crd = x[2]
     focus = x[3]
     nearby_schools(schools, user_post,user_crd,focus,ds_db,rank, rating_n)
-
 
 
 if __name__ == '__main__':
