@@ -8,7 +8,7 @@ st.sidebar.success('Select a page aboe.')
 
 from PIL import Image
 
-st.write('# Welcome to My Data Analytics Portfolio!')
+st.write('# Welcome to My Projects Portfolio!')
 st.write('In this page, I showcase my data analytics projects where I leverage the power of data to gain insights, make informed decisions, and solve real-world problems.')
 
 # Add a title and image to the page
