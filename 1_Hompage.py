@@ -1,9 +1,10 @@
 import streamlit as st
 
-st.set_page_config(page_title='Portfolio Homepage', page_icon='🏠',)
+st.set_page_config(page_title='Portfolio Homepage', layout="wide", initial_sidebar_state="expanded",page_icon='🏠',)
 
-
-st.sidebar.success('Select a page above.')
+st.markdown("""<style>.main {background-color: #f4f4f4;}
+</style>""", unsafe_allow_html=True)
+st.sidebar.success('Select a page aboe.')
 
 from PIL import Image
 
