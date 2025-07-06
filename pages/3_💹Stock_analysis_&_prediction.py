@@ -1,259 +1,394 @@
 
 import streamlit as st
-import pandas as pd
-import numpy as np
+from datetime import date
+import yfinance as yf
 import requests
-from sklearn.preprocessing import MinMaxScaler
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout
-from datetime import date, timedelta
+import pandas as pd
+from bs4 import BeautifulSoup
+import datetime
+import seaborn as sns
+import pandas_ta as ta
+import numpy as np
 import matplotlib.pyplot as plt
-import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from plotly import graph_objs as go
+#from keras.models import Sequential
+#from keras.layers import LSTM
+#import tensorflow as tf
+#from keras.models import Model
+#from keras.layers import Dense, LSTM, Input, concatenate
+from sklearn.preprocessing import MinMaxScaler
 
-# --- Alpha Vantage API Configuration ---
-# You need to get your API key from Alpha Vantage: [https://www.alphavantage.co/support/#api-key](https://www.alphavantage.co/support/#api-key)
-ALPHA_VANTAGE_API_KEY = "GERY9UON8HH4FWK2" # <<< IMPORTANT: Replace with your actual API key
 
-# --- Constants ---
-TODAY = date.today()
-START = TODAY - timedelta(days=365 * 5) # 5 years of data
 
-# --- Helper Functions for Alpha Vantage ---
+# yfinance documentation https://pypi.org/project/yfinance/
 
-@st.cache_data(ttl=3600) # Cache data for 1 hour
-def get_alpha_vantage_data(symbol, interval="daily", outputsize="full"):
-    """
-    Fetches historical stock data from Alpha Vantage.
 
-    Args:
-        symbol (str): The stock ticker symbol (e.g., "IBM").
-        interval (str): The data interval ("daily", "weekly", "monthly").
-                        For daily, use "TIME_SERIES_DAILY_ADJUSTED".
-        outputsize (str): "compact" returns only the latest 100 data points,
-                          "full" returns the full-length time series.
+gianers_url =  'https://www.tradingview.com/markets/stocks-usa/market-movers-gainers/'
+losers_url =  'https://www.tradingview.com/markets/stocks-usa/market-movers-losers/'
+mofta7='USNMZO47I5X7NDKV'
 
-    Returns:
-        pd.DataFrame: A DataFrame with historical stock data, or None if an error occurs.
-    """
-    if interval == "daily":
-        function = "TIME_SERIES_DAILY_ADJUSTED"
-    elif interval == "weekly":
-        function = "TIME_SERIES_WEEKLY_ADJUSTED"
-    elif interval == "monthly":
-        function = "TIME_SERIES_MONTHLY_ADJUSTED"
-    else:
-        st.error(f"Unsupported interval: {interval}. Please choose 'daily', 'weekly', or 'monthly'.")
-        return None
 
-    url = f"[https://www.alphavantage.co/query?function=](https://www.alphavantage.co/query?function=){function}&symbol={symbol}&outputsize={outputsize}&apikey={ALPHA_VANTAGE_API_KEY}"
-    try:
-        response = requests.get(url)
-        response.raise_for_status() # Raise an HTTPError for bad responses (4xx or 5xx)
-        data = response.json()
 
-        if "Error Message" in data:
-            st.error(f"Alpha Vantage API Error for {symbol}: {data['Error Message']}")
-            return None
-        if "Note" in data:
-            st.warning(f"Alpha Vantage API Note for {symbol}: {data['Note']}")
+def get_top_movers_list(url):
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, "html.parser")
 
-        time_series_key = f"Time Series ({interval.capitalize()} Adjusted)" if interval == "daily" else f"{interval.capitalize()} Adjusted Time Series"
+    table = soup.find("table")
+    rows = table.find_all("tr")
 
-        if time_series_key not in data:
-            st.error(f"Could not find '{time_series_key}' in Alpha Vantage response for {symbol}.")
-            return None
+    movers = []
+    for row in rows[1:]:
+        cells = row.find_all("td")
+        symbol_comp = cells[0]
+        result = str(symbol_comp).split('title="', 1)[-1].strip()
+        result = result.split('">', 1)[0].strip()
+        symbol, company_name = result.split(' − ', 1)
+        #company_name = cells[0].find('sup').previous_sibling.strip()
+        change_percent = cells[1].text.strip()
+        price = cells[2].text.strip()
+        change_percentage = cells[3].text.strip()
 
-        df = pd.DataFrame.from_dict(data[time_series_key], orient="index")
-        df = df.astype(float)
-        df.index = pd.to_datetime(df.index)
-        df = df.rename(columns={
-            "1. open": "Open",
-            "2. high": "High",
-            "3. low": "Low",
-            "4. close": "Close",
-            "5. adjusted close": "Adj Close",
-            "6. volume": "Volume"
+        movers.append({
+            "Symbol": symbol,
+            "Company Name": company_name,
+            "Change_perent": change_percent,
+            "Price": price,
+            "Change % 1D": change_percentage
         })
-        df = df[["Open", "High", "Low", "Close", "Adj Close", "Volume"]]
-        df = df.sort_index() # Sort by date ascending
 
-        # Filter by date range as Alpha Vantage doesn't directly support it for daily
-        df = df[(df.index >= pd.to_datetime(START)) & (df.index <= pd.to_datetime(TODAY))]
-        return df
+    df = pd.DataFrame(movers)
+    return df
 
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error fetching data from Alpha Vantage: {e}")
-        return None
-    except ValueError as e:
-        st.error(f"Error parsing Alpha Vantage JSON response: {e}")
-        return None
+Gainers_list = get_top_movers_list(gianers_url)
+Loosers_list = get_top_movers_list(losers_url)
 
-def get_stock_info_alpha_vantage(symbol):
-    """
-    Fetches basic stock information (like company name) from Alpha Vantage.
-    Using GLOBAL_QUOTE for a quick check, but OVERVIEW gives more details.
-    """
-    url = f"[https://www.alphavantage.co/query?function=OVERVIEW&symbol=](https://www.alphavantage.co/query?function=OVERVIEW&symbol=){symbol}&apikey={ALPHA_VANTAGE_API_KEY}"
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-        data = response.json()
-        if "Name" in data:
-            return data["Name"]
-        elif "Error Message" in data:
-            st.error(f"Alpha Vantage API Error for {symbol}: {data['Error Message']}")
-            return None
-        return None
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error fetching stock info from Alpha Vantage: {e}")
-        return None
 
-# --- Streamlit App Layout ---
-st.set_page_config(layout="wide", page_title="Stock Price Predictor")
+st.title('Stock Forecast App')
 
-st.title("📈 Stock Price Predictor")
-st.write("Enter a stock ticker symbol to view its historical prices and predict the next day's closing price using an LSTM model.")
+st.write('This web app will provide you the information needed to analyze the stock market and will rely on prohet machine learning model to predict the estimated value for a after a certain period.')
+st.write('It will rely on the historical stock value from yfinance API (in addition to other information like yearly dividend percentage, Price to Earning Ratio and details on the company). ')
+st.write('This web app will help you to analyze the daily top 100 tickers gainers and loosers as it performs HTML parsing from tradingview.com to provide you with the daily lists')
+st.write('The user will be able to compare two stocks and estimate the potential risk and revenue from each stock, to guide the user to invest in a stock will be able to rely on ChatGPT to get more information about the stock.')
+st.write('Eventually the historical prices will be fed into a Machine Learning Tensorflow model to be trained and then predict the closing value of the selected stock.')
+with st.expander("Click to see todays top movers "):
 
-# --- Stock Selection ---
-stock_options = ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "NVDA", "JPM", "V", "PG"] # Example stocks
-selected_stock = st.sidebar.selectbox("Select a stock or enter a custom one:", stock_options + ["Custom"])
+	list =('Gainers','Loosers')
+	selected_movers =  st.selectbox('To get the list, please select the Top gainers or loosers for today :' , list)
+	if selected_movers == 'Gainers':
+			st.write(Gainers_list)
+	else:
+			st.write(Loosers_list)
 
-custom_stock_ticker = ""
-if selected_stock == "Custom":
-    custom_stock_ticker = st.sidebar.text_input("Enter custom stock ticker (e.g., IBM):").upper()
-    ticker_symbol = custom_stock_ticker
-else:
-    ticker_symbol = selected_stock
+# load tickers
+stocks = {'AAPL', 'AMZN', 'MSFT', 'GOOGL', 'META', 'TSLA', 'NVDA', 'NFLX', 'PYPL', 'INTL', 'BABA', 'AMD', 'INTC', 'CRM','PYPL', 'ATVI', 'TTD', 'EA','MTCH', 'ZG'}
+gainers_stocks = Gainers_list['Symbol'].unique().tolist() 
+loosers_stocks = Loosers_list['Symbol'].unique().tolist()  
+stocks.update(gainers_stocks)
+stocks.update(loosers_stocks)
+# user inputs 
 
-# Interval selection
-selected_interval = st.sidebar.selectbox("Select data interval:", ["daily", "weekly", "monthly"])
+col_stock, col_date, col_button = st.columns(3)
 
-if ticker_symbol:
-    # --- Fetch Stock Information (Avant API equivalent) ---
-    st.subheader(f"Analyzing: {ticker_symbol}")
-    company_name = get_stock_info_alpha_vantage(ticker_symbol)
-    if company_name:
-        st.write(f"Company Name: **{company_name}**")
-    else:
-        st.write("Could not retrieve company name.")
+with col_stock:
+	selected_stock = st.selectbox('Select a stock for analysis', stocks)
 
-    # --- Fetch Historical Data (Avant API equivalent) ---
-    # Line 124 (original): data = yf.download(ticker, START, TODAY, interval=selected_interval)
-    data = get_alpha_vantage_data(ticker_symbol, interval=selected_interval)
 
-    if data is not None and not data.empty:
-        st.subheader("Historical Data")
-        st.dataframe(data.tail()) # Show last few rows of data
+ 
 
-        # Plotting Historical Data
-        fig = go.Figure(data=[go.Candlestick(x=data.index,
-                                             open=data['Open'],
-                                             high=data['High'],
-                                             low=data['Low'],
-                                             close=data['Close'])])
-        fig.update_layout(title=f'{ticker_symbol} Historical Price',
-                          xaxis_rangeslider_visible=False)
-        st.plotly_chart(fig, use_container_width=True)
+with col_date:
+	START = st.date_input("Start date",datetime.date(2013, 1,1 ))
+	def update_date():
+		new_date = st.date_input('Select a new date')
+		st.session_state['date'] = new_date
+		button = st.button('Update Date', on_click=update_date)
+		if button:
+			st.write(f'Date updated.')
+		
+		if 'date' not in st.session_state:
+			st.session_state['date'] = date(2015, 1,1 )
+TODAY = date.today().strftime("%Y-%m-%d")
+with col_button:
+	
+	interval = ['1d','1wk']
 
-        # --- Prepare Data for LSTM ---
-        st.subheader("Building LSTM Model...")
-        # Use 'Close' price for prediction
-        data_close = data['Close'].values.reshape(-1, 1)
+	selected_interval = st.radio("Select an option", options = interval, horizontal=True)
 
-        # Scale the data
-        scaler = MinMaxScaler(feature_range=(0, 1))
-        scaled_data = scaler.fit_transform(data_close)
 
-        # Create training data set
-        training_data_len = int(len(scaled_data) * 0.8)
-        train_data = scaled_data[0:training_data_len, :]
 
-        # Prepare x_train and y_train
-        x_train = []
-        y_train = []
-        look_back = 60 # Number of previous days to consider for prediction
 
-        for i in range(look_back, len(train_data)):
-            x_train.append(train_data[i-look_back:i, 0])
-            y_train.append(train_data[i, 0])
+#@st.cache_data
+def load_data(ticker):
+   
+    # read data from yfinance
+    data = yf.download(ticker, START, TODAY, interval=selected_interval)
+    return data
 
-        x_train, y_train = np.array(x_train), np.array(y_train)
-        x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
 
-        # Build the LSTM model
-        model = Sequential()
-        model.add(LSTM(50, return_sequences=True, input_shape=(x_train.shape[1], 1)))
-        model.add(Dropout(0.2))
-        model.add(LSTM(50, return_sequences=False))
-        model.add(Dropout(0.2))
-        model.add(Dense(25))
-        model.add(Dense(1))
+tab1 , tab2 = st.tabs([ "Charts","Data"])
 
-        # Compile the model
-        model.compile(optimizer='adam', loss='mean_squared_error')
+with tab2:
+	
+	
+	data = load_data(selected_stock)
+	
+	cm = sns.light_palette("green", as_cmap=True)
+	#data.style.background_gradient(cmap=cm)
+	st.write(data.tail(50))
+	st.write(len(data))
+	st.write(data.columns.tolist())
 
-        # Train the model (can take a while for large datasets)
-        with st.spinner("Training the LSTM model... This might take a few moments."):
-            model.fit(x_train, y_train, batch_size=1, epochs=1) # Reduced epochs for faster demo
 
-        # Create the testing data set
-        test_data = scaled_data[training_data_len - look_back:, :]
-        x_test = []
-        y_test = data_close[training_data_len:, :]
+with tab1:
 
-        for i in range(look_back, len(test_data)):
-            x_test.append(test_data[i-look_back:i, 0])
+	st.subheader("Historical data ")
+	
+	# Plot raw data
+	def plot_raw_data():
+		fig = go.Figure()
+		fig.add_trace(go.Scatter(x=data.index, y=data['Open'], name="stock_open"))
+		fig.add_trace(go.Scatter(x=data.index, y=data['Close'], name="stock_close"))
+		fig.layout.update(title_text='Time Series stock data', xaxis_rangeslider_visible=True)
+		st.plotly_chart(fig)
+		
+	plot_raw_data()
 
-        x_test = np.array(x_test)
-        x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
+col1, col2 = st.columns(2)
+with col1:
+	ticker = yf.Ticker(str(selected_stock))
+	
+	st.subheader(selected_stock)
+	st.write(selected_stock,' company is based in ', ticker.info['country'], ' , its main industry is ',ticker.info['industry'],' and its website is ',ticker.info['website'])
+	st.write('The trading volume is',ticker.info['marketCap'] ,' and the market cap is ',ticker.info['volume'])
+	st.write('The 52 weeks trading high is ',ticker.info['fiftyTwoWeekHigh'], ' and the 52 weeks trading low is ',ticker.info['fiftyTwoWeekLow'])
+	st.write(ticker.info['longBusinessSummary'])
+	with st.expander("For a closer look to the stock data, click here !"):
+		temp = pd.DataFrame.from_dict(ticker.info, orient="index")
+		temp.reset_index(inplace=True)
+		temp.columns = ["Attribute", "Recent"]
+		st.write(temp) 
+#with col2:
+	
+	#st.subheader('More from ChatGPT plugin: ')
+	#from langchain import OpenAI
+	#import os
+	#gpt_mofta7 = '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'
+	#os.environ["OPENAI_API_KEY"] =gpt_mofta7
 
-        # Get the model's predicted price values
-        predictions = model.predict(x_test)
-        predictions = scaler.inverse_transform(predictions)
+	#from langchain.llms import OpenAI
+	#llm = OpenAI(temperature=0.9)  # model_name="text-davinci-003"
+	#text = st.text_area('Hi there! Im your assistant, and will provide you answers powered by ChatGPT ',value='Hi ChatGPT, How is stock '+ selected_stock +" is performing this week?")
+	#st.write('## ChatGP: ')
+	#st.markdown(llm(text))
 
-        # Calculate RMSE (Root Mean Squared Error)
-        rmse = np.sqrt(np.mean(predictions - y_test)**2)
-        st.write(f"Root Mean Squared Error (RMSE): {rmse:.2f}")
 
-        # Plot the data
-        train = data[:training_data_len]
-        valid = data[training_data_len:]
-        valid['Predictions'] = predictions
 
-        st.subheader("Model Predictions vs. Actual Prices")
-        fig2 = go.Figure()
-        fig2.add_trace(go.Scatter(x=train.index, y=train['Close'], mode='lines', name='Train Price'))
-        fig2.add_trace(go.Scatter(x=valid.index, y=valid['Close'], mode='lines', name='Actual Price'))
-        fig2.add_trace(go.Scatter(x=valid.index, y=valid['Predictions'], mode='lines', name='Predictions'))
-        fig2.update_layout(title=f'Model Predictions for {ticker_symbol}',
-                           xaxis_title='Date',
-                           yaxis_title='Close Price',
-                           legend_title='Legend')
-        st.plotly_chart(fig2, use_container_width=True)
+	
+with st.container():
+	st.subheader('Momentum	 analysis')
+	metrics = {'EMAF','RSI','SMA','EMAM','EMAS'}
+	selected_metric = st.multiselect('Please chose the indicators you want to analyze: ', options = metrics, default= ['SMA'] )
+	data['RSI']=ta.rsi(data.Close, length=15)
+	data['EMAF']=ta.ema(data.Close, length=20)
+	data['EMAM']=ta.ema(data.Close, length=100)
+	data['EMAS']=ta.ema(data.Close, length=150)
+	data['SMA'] = ta.sma(data.Close,timeperiod=10)
 
-        # --- Predict Next Day's Price ---
-        st.subheader("Next Day Price Prediction")
-        if not data.empty:
-            # Get the last 'look_back' days of data
-            last_look_back_days = data_close[-look_back:]
-            last_look_back_days_scaled = scaler.transform(last_look_back_days)
+	
+	fig3 = go.Figure()
+	fig3.add_trace(go.Candlestick(x=data.index,open=data['Open'],high=data['High'],low=data['Low'],
+	close=data['Close'], name="Price"))
+	if 'SMA' in selected_metric:
+			fig3.add_trace(go.Scatter(x=data.index, y=data['SMA'], name="SMA"))
+	if 'EMAF' in selected_metric:		
+			fig3.add_trace(go.Scatter(x=data.index, y=data['EMAF'], name="EMAF"))
+	if 'RSI' in selected_metric:		
+			fig3.add_trace(go.Scatter(x=data.index, y=data['RSI'], name="RSI"))
+	if 'EMAM' in selected_metric:		
+			fig3.add_trace(go.Scatter(x=data.index, y=data['EMAM'], name="EMAM"))
+	if 'EMAS' in selected_metric:		
+			fig3.add_trace(go.Scatter(x=data.index, y=data['EMAS'], name="EMAS"))
 
-            # Reshape for prediction
-            X_next_day = np.array([last_look_back_days_scaled])
-            X_next_day = np.reshape(X_next_day, (X_next_day.shape[0], X_next_day.shape[1], 1))
+	fig3.update_layout(height=600, width=800, title_text='Stock Metrics')
+	st.plotly_chart(fig3)
 
-            # Predict the next day's price
-            next_day_prediction_scaled = model.predict(X_next_day)
-            next_day_prediction = scaler.inverse_transform(next_day_prediction_scaled)
+	fig4=go.Figure()
+	fig4.add_trace(go.Bar(x=data.index, y=data['Volume'], name='Volume'))
+	fig4.update_layout(height=300, width=800, title_text='Volume')
+	st.plotly_chart(fig4)
 
-            st.success(f"The predicted closing price for **{ticker_symbol}** for the next trading day is: **${next_day_prediction[0][0]:.2f}**")
-        else:
-            st.warning("Not enough data to predict the next day's price.")
+with st.container():
+	st.subheader('Investment Analysis')
+	default_selection = ['AMZN', 'AAPL']
+	analyzed_stocks = st.multiselect('Please chose the stocks you want to analyze: ', options = stocks,default=['AMZN', 'AAPL'] )
+	if analyzed_stocks == []:
+		st.write("Please select up to 2 stocks.")
+	
+	elif len(analyzed_stocks) == 1:
+		st.write("Please chose another stock to analyze.")
+	elif len(analyzed_stocks) >2:
+		st.write("You selected more than 2, please select maximum 2 stocks.")
+	else:
+		df1=load_data(analyzed_stocks[0])['Adj Close'].to_frame()
+		df1['Adj Close'].fillna(0)
+		df1 = df1.rename(columns={"Adj Close": analyzed_stocks[0]+'_Adj Close'})
+		df2=load_data(analyzed_stocks[1])['Adj Close'].to_frame()
+		df2['Adj Close'].fillna(0)
+		df2 = df2.rename(columns={"Adj Close": analyzed_stocks[1]+'_Adj Close'})
+		df_3 = pd.concat([df1, df2], axis=1).pct_change()
 
-    elif data is None:
-        st.error(f"Failed to retrieve data for {ticker_symbol}. Please check the ticker symbol and your API key.")
-    else:
-        st.warning(f"No data available for {ticker_symbol} in the specified date range ({START} to {TODAY}).")
-else:
-    st.info("Please select or enter a stock ticker symbol to begin.")
+
+		# plot the correlation between 2 stocks
+		st.write('Correlation is a statistic that measures the degree to which two variables move in relation to each other. ')
+		st.write('In below jointplot chart, we compare the daily return of the two stocks you have selected to check how they correlate.')
+		jointplot=sns.jointplot(df_3, x=analyzed_stocks[0]+'_Adj Close',y=analyzed_stocks[1]+'_Adj Close', kind='scatter')
+		
+		# Get the jointplot data for plotting
+		x = jointplot.ax_joint.collections[0].get_offsets()[:, 0]
+		y = jointplot.ax_joint.collections[0].get_offsets()[:, 1]
+
+		scatter_plot = go.Scatter(x=x, y=y, mode='markers')
+		# Create a Plotly layout
+		layout = go.Layout(title="Correlation using Jointplot",xaxis=dict(title=analyzed_stocks[0]),yaxis=dict(title=analyzed_stocks[1]))
+		fig6 = go.Figure(data=[scatter_plot], layout=layout)
+		#st.plotly_chart(fig6)
+		st.set_option('deprecation.showPyplotGlobalUse', False)
+		st.pyplot()
+	
+		# Calculate risk
+		rets = df_3.dropna()
+
+		area = np.pi * 10
+		# Create a Plotly scatter plot & layout
+		scatter_plot = go.Scatter(x=rets.mean(),y=rets.std(),mode='markers',marker=dict(size=area),	)
+			
+		layout = go.Layout(title='Expected Return vs. Risk',xaxis=dict(title='Expected return'),yaxis=dict(title='Risk'),)
+		fig7 = go.Figure(data=[scatter_plot], layout=layout)
+
+		# Annotate the points with column labels
+		for label, x, y in zip(rets.columns, rets.mean(), rets.std()):
+			fig7.add_annotation(x=x, y=y, text=str(label),xanchor='left',showarrow=True,arrowhead=1,arrowsize=1,arrowcolor='lightgreen',ax=50,ay=-50,font=dict(family="Arial",size=18,color="black")	)
+		# Display the Plotly figure in Streamlit
+		st.plotly_chart(fig7)
+
+
+with st.container():
+	st.header('Stock Predictions')
+	st.write('In the following section we will use one of the Tensorflow ML models to predict the closing price of the stock you have used. The LSTM model will rely on RNN (Recursive Neural Network) in the prediction and the RNN will be formed of 4 layers. We will then split the historical stock price data into 2 sets. We chose to use 95% of the data to train the model and 5% to evaluate the model and measure the accuracy of the predicted values.')
+	
+	st.write('You have selected stock', selected_stock, ' which will be considered in the prediction')
+	ticker_close = data['Close'].copy()
+	
+	with st.spinner("Preprocessing the dataset and preparing your data in a suitable format for training a deep learning RNN model..."):
+		# Convert the dataframe to a numpy array
+		dataset = ticker_close.values
+		# Get the number of rows to train the model on
+		training_data_len = int(np.ceil( len(dataset) * .95 ))
+		# Scale the data
+		from sklearn.preprocessing import MinMaxScaler
+		reshaped_dataset = dataset.reshape(-1, 1)
+		scaler = MinMaxScaler(feature_range=(0,1))
+		scaled_data = scaler.fit_transform(reshaped_dataset)
+
+		
+		# Create the training data set 
+		# Create the scaled training data set
+		train_data = scaled_data[0:int(training_data_len), :]
+		# Split the data into x_train and y_train data sets
+		x_train = []
+		y_train = []
+
+		for i in range(60, len(train_data)):
+			x_train.append(train_data[i-60:i, 0])
+			y_train.append(train_data[i, 0])
+			if i<= 61:
+				print(x_train)
+				print(y_train)
+				print()
+				
+		# Convert the x_train and y_train to numpy arrays 
+		x_train, y_train = np.array(x_train), np.array(y_train)
+
+		# Reshape the data
+		x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
+		
+	with st.spinner("Training the LSTM model with 95% of the dataset..."):
+		# x_train.shape
+		from keras.models import Sequential
+		from keras.layers import Dense, LSTM
+
+		# Build the LSTM model
+		model = Sequential()
+		model.add(LSTM(128, return_sequences=True, input_shape= (x_train.shape[1], 1)))
+		model.add(LSTM(64, return_sequences=False))
+		model.add(Dense(25))
+		model.add(Dense(1))
+
+		# Compile the model
+		model.compile(optimizer='adam', loss='mean_squared_error')
+
+		# Train the model
+		model.fit(x_train, y_train, batch_size=1, epochs=1)
+		#import keras.utils.plot_model
+		
+		#fig99 = keras.utils.plot_model(model, show_shapes=True, show_layer_names=True)
+		
+	with st.spinner("Evaluating the model & calculating the root mean squared error (RMSE)"):
+		# Create the testing data set
+		# Create a new array containing scaled values 
+		test_data = scaled_data[training_data_len - 60: , :]
+		# Create the data sets x_test and y_test
+		x_test = []
+		y_test = reshaped_dataset[training_data_len:, :]
+		for i in range(60, len(test_data)):
+			x_test.append(test_data[i-60:i, 0])
+			
+		# Convert the data to a numpy array
+		x_test = np.array(x_test)
+
+		# Reshape the data
+		x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1 ))
+
+		# Get the models predicted price values 
+		predictions = model.predict(x_test)
+		predictions = scaler.inverse_transform(predictions)
+
+		# Get the root mean squared error (RMSE)
+		rmse = np.sqrt(np.mean(((predictions - y_test) ** 2)))
+		st.write('The rmse is', rmse, ' a lower RMSE means that the predicted values are closer to the actual values.')
+
+	with st.spinner('Ploting the training and the model prediction '):
+		
+		
+		plot_tab , data_tab = st.tabs([ "Prediction plot","Prediction Data"])
+		
+		#with data_tab:
+			# Plot the data
+		#	train = data[:training_data_len]
+		#	valid = data[training_data_len:]
+		#	valid['Predictions'] = predictions
+		#	results = valid[['Close','Predictions']].copy()
+		#	st.write(results.tail(20))
+
+		with plot_tab:
+			# Visualize the data
+			fig8, ax = plt.subplots(figsize=(16,6))
+			#ax.set_title(selected_stock, 'model')
+			ax.set_xlabel('Date', fontsize=18)
+			ax.set_ylabel('Close Price USD ($)', fontsize=18)
+			ax.plot(train['Close'])
+			ax.plot(valid[['Close', 'Predictions']])
+			ax.legend(['Train', 'Eval', 'Predictions'], loc='lower right')
+			st.pyplot(fig8)
+	st.write('The predicted closing value is: ', round(results.iloc[len(results)-1,1],2), ' $')
+	st.write('There are numerous ways to improve the model accuracy. For instance the length of the dataset, it is recommended to change the start date you selected at the beginning to increase the model performance and accuracy features selection. There are other techniques to improve the model accuracy which are not in the scope of this exercise, like increasing the number of layers in the RNN model architecture, optimizing the number of epochs, using multiple models, apply regularization to prevent overfitting, utilize cross-validation techniques to obtain a more reliable estimate of the models performance.')
+
+
+
+
+
+
+
+
+
 
