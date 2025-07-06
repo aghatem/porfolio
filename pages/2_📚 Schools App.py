@@ -319,7 +319,7 @@ def nearby_schools(schools,user_post,user_crd,f,ds_db,rank, rating_n):
                 )
             else:
                 # For other failed postcodes, set invalid markers
-                st.warning(f"Could not get coordinates for school postcode: {school_postcode}")
+                # st.warning(f"Could not get coordinates for school postcode: {school_postcode}")
                 selected_schools.iloc[i, 23] = 0.0  # invalid latitude
                 selected_schools.iloc[i, 24] = 0.0  # invalid longitude
                 selected_schools.iloc[i, 25] = 999999  # very large distance to indicate unknown
