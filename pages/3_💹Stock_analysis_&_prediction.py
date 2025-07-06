@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 
 # --- Alpha Vantage API Configuration ---
 # You need to get your API key from Alpha Vantage: [https://www.alphavantage.co/support/#api-key](https://www.alphavantage.co/support/#api-key)
-ALPHA_VANTAGE_API_KEY = "0N8GO4QR4D5009MN" # <<< IMPORTANT: Replace with your actual API key
+ALPHA_VANTAGE_API_KEY = "GERY9UON8HH4FWK2" # <<< IMPORTANT: Replace with your actual API key
 
 # --- Constants ---
 TODAY = date.today()
