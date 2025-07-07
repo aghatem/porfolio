@@ -15,7 +15,7 @@ from alpha_vantage.fundamentaldata import FundamentalData
 
 # --- Alpha Vantage API Key ---
 # It's recommended to store this as a Streamlit secret, but we'll define it here for simplicity.
-ALPHA_VANTAGE_API_KEY = 'GERY9UON8HH4FWK2'
+ALPHA_VANTAGE_API_KEY = 'USNMZO47I5X7NDKV'
 
 # --- Constants for Web Scraping ---
 GAINERS_URL = 'https://www.tradingview.com/markets/stocks-usa/market-movers-gainers/'
@@ -187,7 +187,13 @@ if info is not None:
     st.write(f"**Industry:** {info.get('Industry', 'N/A')}")
     st.write(f"**Sector:** {info.get('Sector', 'N/A')}")
     st.write(f"**Market Cap:** ${int(info.get('MarketCapitalization', 0)):,}")
-    st.write(f"**Latest Volume:** {int(latest_volume):,}")
+    
+    # FIX: Check if latest_volume is a number before trying to format it.
+    if isinstance(latest_volume, (int, float)):
+        st.write(f"**Latest Volume:** {int(latest_volume):,}")
+    else:
+        st.write(f"**Latest Volume:** {latest_volume}")
+
     st.write(f"**52 Week High:** {info.get('52WeekHigh', 'N/A')}")
     st.write(f"**52 Week Low:** {info.get('52WeekLow', 'N/A')}")
     
@@ -353,4 +359,3 @@ try:
             
 except ImportError:
     st.warning("TensorFlow/Keras not installed. The prediction section is disabled. Please install with `pip install tensorflow`.")
-
