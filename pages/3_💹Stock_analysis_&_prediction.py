@@ -66,7 +66,7 @@ def load_data(ticker, interval):
         
         if interval == '1d':
             # Use get_daily_adjusted to include 'Adj Close'
-            data, _ = ts.get_daily_adjusted(symbol=ticker, outputsize='full')
+            data, _ = ts.get_weekly_adjusted(symbol=ticker)
         elif interval == '1wk':
             data, _ = ts.get_weekly_adjusted(symbol=ticker)
         # Note: Alpha Vantage free tier has limitations on intraday and monthly calls.
